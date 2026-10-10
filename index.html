@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0b1020">
+<title>Arrow Escape</title>
+
+<style>
+:root {
+  --bg: #0b1020;
+  --panel: #151d32;
+  --cell: #202b45;
+  --text: #f3f6ff;
+  --muted: #9ba9c7;
+  --blue: #65a7ff;
+  --green: #54e3ad;
+  --red: #ff7185;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  padding: 18px 12px 30px;
+  background:
+    radial-gradient(ellipse at top, #1a2c51 0%, transparent 55%),
+    var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, sans-serif;
+  display: flex;
+  justify-content: center;
+}
+
+.app {
+  width: 100%;
+  max-width: 480px;
+}
+
+header {
+  text-align: center;
+  margin: 4px 0 20px;
+}
+
+.logo {
+  font-size: 13px;
+  letter-spacing: 4px;
+  color: var(--blue);
+  font-weight: 800;
+}
+
+h1 {
+  margin: 5px 0;
+  font-size: clamp(29px, 8vw, 38px);
+  letter-spacing: -1.5px;
+}
+
+.subtitle {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.stat {
+  background: rgba(21, 29, 50, 0.94);
+  border: 1px solid #293653;
+  border-radius: 14px;
+  text-align: center;
+  padding: 11px 4px;
+}
+
+.stat-label {
+  display: block;
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+
+.stat-value {
+  font-size: 19px;
+  font-weight: 800;
+}
+
+.progress-wrap {
+  height: 5px;
+  border-radius: 20px;
+  background: #222d45;
+  overflow: hidden;
+  margin: 0 2px 16px;
+}
+
+#progress {
+  width: 0%;
+  height: 100%;
+  background: linear-gradient(90deg, #5b91ff, #54e3ad);
+  transition: width 0.25s ease;
+}
+
+.game-panel {
+  position: relative;
+  padding: 12px;
+  background: rgba(21, 29, 50, 0.95);
+  border: 1px solid #293653;
+  border-radius: 20px;
+  box-shadow: 0 18px 50px #0003;
+}
+
+.board {
+  width: 100%;
+  aspect-ratio: 1;
+  display: grid;
+  gap: 5px;
+  touch-action: manipulation;
+  user-select: none;
+}
+
+.cell {
+  min-width: 0;
+  min-height: 0;
+  border: 1px solid #2b3855;
+  border-radius: 9px;
+  background: var(--cell);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+  transition: background 0.15s, opacity 0.2s;
+}
+
+.cell.empty {
+  background: #111a2d;
+  border-color: #1b2740;
+}
+
+.arrow {
+  display: block;
+  font-family: Arial, sans-serif;
+  font-size: clamp(21px, 6vw, 32px);
+  font-weight: 900;
+  line-height: 1;
+  color: #f2f6ff;
+  text-shadow: 0 0 12px #76b5ff35;
+  pointer-events: none;
+}
+
+.cell.removed {
+  background: #102b2b;
+  border-color: #1b4845;
+  opacity: 0.4;
+}
+
+.cell.removed .arrow {
+  opacity: 0;
+}
+
+.cell.hinted {
+  outline: 3px solid var(--green);
+  outline-offset: -3px;
+  background: #1d5047;
+}
+
+.cell.blocked {
+  animation: shake 0.25s ease;
+  background: #512b3a;
+  border-color: var(--red);
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+.message {
+  min-height: 23px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+  margin: 13px 0 3px;
+}
+
+.controls {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-top: 15px;
+}
+
+button {
+  font: inherit;
+  border: 1px solid #354361;
+  border-radius: 12px;
+  padding: 12px 4px;
+  color: var(--text);
+  background: #1a2540;
+  font-size: 12px;
+  font-weight: 750;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: transform 0.1s, background 0.15s;
+}
+
+button:active {
+  transform: scale(0.96);
+}
+
+button.primary {
+  background: #397be6;
+  border-color: #5593ff;
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.instructions {
+  margin-top: 16px;
+  padding: 15px;
+  background: #111a2d;
+  border: 1px solid #25324c;
+  border-radius: 14px;
+}
+
+.instructions h2 {
+  margin: 0 0 6px;
+  font-size: 13px;
+}
+
+.instructions p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.65;
+  color: var(--muted);
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: #050914d9;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 10;
+}
+
+.overlay.show {
+  display: flex;
+}
+
+.dialog {
+  width: 100%;
+  max-width: 330px;
+  padding: 26px 20px;
+  text-align: center;
+  background: #17223a;
+  border: 1px solid #3b4d70;
+  border-radius: 23px;
+  box-shadow: 0 20px 80px #0008;
+}
+
+.dialog-icon {
+  font-size: 48px;
+}
+
+.dialog h2 {
+  font-size: 25px;
+  margin: 8px 0;
+}
+
+.dialog p {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.dialog button {
+  width: 100%;
+  margin-top: 10px;
+  padding: 14px;
+  font-size: 14px;
+}
+
+footer {
+  text-align: center;
+  margin-top: 18px;
+  color: #687897;
+  font-size: 11px;
+}
+
+@media (max-width: 350px) {
+  .game-panel { padding: 8px; }
+  .board { gap: 3px; }
+  .cell { border-radius: 6px; }
+  .controls { gap: 5px; }
+  button { font-size: 11px; }
+}
+</style>
+</head>
+
+<body>
+<main class="app">
+
+  <header>
+    <div class="logo">PUZZLE ARCADE</div>
+    <h1>ARROW ESCAPE <span style="color:#65a7ff">↗</span></h1>
+    <div class="subtitle">Clear the board. Find your way out.</div>
+  </header>
+
+  <section class="stats">
+    <div class="stat">
+      <span class="stat-label">LEVEL</span>
+      <span class="stat-value" id="level">1</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">MOVES</span>
+      <span class="stat-value" id="moves">0</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">SCORE</span>
+      <span class="stat-value" id="score">0</span>
+    </div>
+  </section>
+
+  <div class="progress-wrap">
+    <div id="progress"></div>
+  </div>
+
+  <section class="game-panel">
+    <div id="board" class="board" aria-label="Arrow puzzle board"></div>
+    <div class="message" id="message" aria-live="polite">
+      Tap an arrow that has a clear path out.
+    </div>
+  </section>
+
+  <section class="controls">
+    <button id="hintBtn">💡 Hint</button>
+    <button id="restartBtn">↻ Restart</button>
+    <button id="soundBtn">🔊 Sound ON</button>
+    <button id="nextBtn" class="primary">Next ➜</button>
+  </section>
+
+  <section class="instructions">
+    <h2>HOW TO PLAY</h2>
+    <p>
+      ↗ Tap an arrow to move it off the board.<br>
+      ↗ An arrow can escape only if its path is clear.<br>
+      ↗ Remove blocking arrows to open new paths.<br>
+      ↗ Clear every arrow to finish the level.
+    </p>
+  </section>
+
+  <footer>ARROW ESCAPE · Think ahead, clear the way.</footer>
+</main>
+
+<div id="overlay" class="overlay" role="dialog" aria-modal="true">
+  <div class="dialog">
+    <div class="dialog-icon" id="dialogIcon">🎉</div>
+    <h2 id="dialogTitle">Level Complete!</h2>
+    <p id="dialogText">Great work!</p>
+    <button id="dialogBtn" class="primary">Continue ➜</button>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* -----------------------------
+   GAME SETTINGS
+----------------------------- */
+
+const DIRECTIONS = [
+  { name: "up",    dx: 0,  dy: -1, symbol: "↑" },
+  { name: "right", dx: 1,  dy: 0,  symbol: "→" },
+  { name: "down",  dx: 0,  dy: 1,  symbol: "↓" },
+  { name: "left",  dx: -1, dy: 0,  symbol: "←" }
+];
+
+const boardElement = document.getElementById("board");
+const levelElement = document.getElementById("level");
+const movesElement = document.getElementById("moves");
+const scoreElement = document.getElementById("score");
+const progressElement = document.getElementById("progress");
+const messageElement = document.getElementById("message");
+const overlayElement = document.getElementById("overlay");
+
+let level = 1;
+let moves = 0;
+let score = 0;
+let bestScore = loadBestScore();
+let soundEnabled = true;
+let arrows = [];
+let boardSize = 5;
+let levelComplete = false;
+let hintIndex = -1;
+let audioContext = null;
+let audioReady = false;
+let restartSnapshot = null;
+
+/* -----------------------------
+   SAFE STORAGE
+----------------------------- */
+
+function loadBestScore() {
+  try {
+    return Number(localStorage.getItem("arrowEscapeBest")) || 0;
+  } catch (error) {
+    return 0;
+  }
+}
+
+function saveBestScore() {
+  try {
+    localStorage.setItem("arrowEscapeBest", String(bestScore));
+  } catch (error) {
+    // The game still works if storage is unavailable.
+  }
+}
+
+/* -----------------------------
+   SOUND EFFECTS
+----------------------------- */
+
+function prepareAudio() {
+  if (!soundEnabled) return;
+
+  try {
+    const AudioClass = window.AudioContext ||
+                       window.webkitAudioContext;
+
+    if (!AudioClass) return;
+
+    if (!audioContext) {
+      audioContext = new AudioClass();
+    }
+
+    if (audioContext.state === "suspended") {
+      audioContext.resume().catch(() => {});
+    }
+
+    audioReady = true;
+  } catch (error) {
+    audioReady = false;
+  }
+}
+
+function tone(frequency, duration, type, volume, delay = 0) {
+  if (!soundEnabled) return;
+
+  prepareAudio();
+
+  if (!audioContext || !audioReady) return;
+
+  try {
+    const oscillator = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    const start = audioContext.currentTime + delay;
+    const end = start + duration;
+
+    oscillator.type = type || "sine";
+    oscillator.frequency.setValueAtTime(frequency, start);
+
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.exponentialRampToValueAtTime(
+      Math.max(0.0002, volume), start + 0.012
+    );
+    gain.gain.exponentialRampToValueAtTime(0.0001, end);
+
+    oscillator.connect(gain);
+    gain.connect(audioContext.destination);
+
+    oscillator.start(start);
+    oscillator.stop(end + 0.02);
+  } catch (error) {
+    // Sound failure must never stop gameplay.
+  }
+}
+
+function playEscapeSound() {
+  tone(520, 0.10, "sine", 0.10);
+  tone(760, 0.12, "sine", 0.08, 0.07);
+}
+
+function playBlockedSound() {
+  tone(180, 0.13, "triangle", 0.09);
+  tone(125, 0.12, "triangle", 0.07, 0.08);
+}
+
+function playHintSound() {
+  tone(660, 0.10, "sine", 0.07);
+  tone(880, 0.13, "sine", 0.08, 0.10);
+}
+
+function playVictorySound() {
+  tone(523, 0.18, "sine", 0.09);
+  tone(659, 0.18, "sine", 0.09, 0.15);
+  tone(784, 0.18, "sine", 0.09, 0.30);
+  tone(1047, 0.32, "sine", 0.09, 0.45);
+}
+
+function playRestartSound() {
+  tone(400, 0.08, "triangle", 0.06);
+  tone(300, 0.10, "triangle", 0.06, 0.07);
+}
+
+function playClickSound() {
+  tone(440, 0.06, "sine", 0.045);
+}
+
+/* -----------------------------
+   PUZZLE GENERATOR
+
+   Each arrow is added only when
+   its route to an edge is clear
+   of all arrows already placed.
+
+   Therefore, arrows can be removed
+   in reverse placement order.
+   This gives every generated puzzle
+   a valid solution.
+----------------------------- */
+
+function randomInteger(max) {
+  return Math.floor(Math.random() * max);
+}
+
+function shuffle(array) {
+  const result = array.slice();
+
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = randomInteger(i + 1);
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+
+  return result;
+}
+
+function isPathClear(candidate, placed) {
+  const direction = DIRECTIONS[candidate.direction];
+  let x = candidate.x + direction.dx;
+  let y = candidate.y + direction.dy;
+
+  while (
+    x >= 0 && x < boardSize &&
+    y >= 0 && y < boardSize
+  ) {
+    const blocked = placed.some(arrow =>
+      !arrow.gone && arrow.x === x && arrow.y === y
+    );
+
+    if (blocked) return false;
+
+    x += direction.dx;
+    y += direction.dy;
+  }
+
+  return true;
+}
+
+function generatePuzzle() {
+  boardSize = Math.min(5 + Math.floor((level - 1) / 3), 8);
+
+  const targetCount = Math.min(
+    boardSize * boardSize - 2,
+    12 + level * 2
+  );
+
+  let bestAttempt = [];
+
+  // Try multiple layouts and keep the fullest valid one.
+  for (let attempt = 0; attempt < 100; attempt++) {
+    const placed = [];
+
+    const cells = [];
+
+    for (let y = 0; y < boardSize; y++) {
+      for (let x = 0; x < boardSize; x++) {
+        cells.push({ x, y });
+      }
+    }
+
+    const shuffledCells = shuffle(cells);
+
+    for (const cell of shuffledCells) {
+      if (placed.length >= targetCount) break;
+
+      const directions = shuffle([0, 1, 2, 3]);
+
+      for (const direction of directions) {
+        const candidate = {
+          id: placed.length,
+          x: cell.x,
+          y: cell.y,
+          direction,
+          gone: false
+        };
+
+        if (isPathClear(candidate, placed)) {
+          placed.push(candidate);
+          break;
+        }
+      }
+    }
+
+    if (placed.length > bestAttempt.length) {
+      bestAttempt = placed.map(arrow => ({ ...arrow }));
+    }
+
+    if (placed.length >= targetCount) break;
+  }
+
+  // Never add a potentially blocking fallback layout.
+  // A smaller valid puzzle is preferable to an unsolvable one.
+  arrows = bestAttempt.map((arrow, index) => ({
+    ...arrow,
+    id: index,
+    gone: false
+  }));
+
+  // Defensive fallback: a single arrow always has a clear path.
+  if (arrows.length === 0) {
+    arrows = [{
+      id: 0,
+      x: Math.floor(boardSize / 2),
+      y: Math.floor(boardSize / 2),
+      direction: 0,
+      gone: false
+    }];
+  }
+
+  levelComplete = false;
+  hintIndex = -1;
+  restartSnapshot = arrows.map(arrow => ({ ...arrow }));
+
+  renderBoard();
+  updateStats();
+
+  messageElement.textContent =
+    arrows.length + " arrows. Find a clear path out!";
+}
+
+/* -----------------------------
+   BOARD RENDERING
+----------------------------- */
+
+function renderBoard() {
+  boardElement.innerHTML = "";
+  boardElement.style.gridTemplateColumns =
+    `repeat(${boardSize}, minmax(0, 1fr))`;
+  boardElement.style.gridTemplateRows =
+    `repeat(${boardSize}, minmax(0, 1fr))`;
+
+  const cellMap = new Map();
+
+  for (const arrow of arrows) {
+    cellMap.set(`${arrow.x},${arrow.y}`, arrow);
+  }
+
+  for (let y = 0; y < boardSize; y++) {
+    for (let x = 0; x < boardSize; x++) {
+      const cell = document.createElement("button");
+      cell.type = "button";
+      cell.className = "cell";
+      cell.setAttribute("aria-label", `Row ${y + 1}, column ${x + 1}`);
+
+      const arrow = cellMap.get(`${x},${y}`);
+
+      if (!arrow) {
+        cell.classList.add("empty");
+        cell.disabled = true;
+      } else {
+        const symbol = document.createElement("span");
+        symbol.className = "arrow";
+        symbol.textContent = DIRECTIONS[arrow.direction].symbol;
+
+        cell.appendChild(symbol);
+
+        if (arrow.gone) {
+          cell.classList.add("removed");
+          cell.disabled = true;
+        } else {
+          cell.addEventListener("click", () => {
+            handleArrowTap(arrow.id, cell);
+          });
+        }
+
+        if (arrow.id === hintIndex && !arrow.gone) {
+          cell.classList.add("hinted");
+        }
+      }
+
+      boardElement.appendChild(cell);
+    }
+  }
+}
+
+/* -----------------------------
+   GAMEPLAY
+----------------------------- */
+
+function handleArrowTap(id, cell) {
+  prepareAudio();
+
+  if (levelComplete) return;
+
+  const arrow = arrows.find(item => item.id === id);
+
+  if (!arrow || arrow.gone) return;
+
+  moves++;
+  hintIndex = -1;
+
+  if (isPathClear(arrow, arrows)) {
+    arrow.gone = true;
+    score += 10;
+
+    messageElement.textContent = "Nice! Arrow escaped. ↗";
+    playEscapeSound();
+
+    renderBoard();
+    updateStats();
+
+    if (arrows.every(item => item.gone)) {
+      finishLevel();
+    }
+  } else {
+    messageElement.textContent =
+      "Blocked! Clear the arrows in its path first.";
+
+    playBlockedSound();
+
+    cell.classList.remove("blocked");
+    void cell.offsetWidth;
+    cell.classList.add("blocked");
+
+    window.setTimeout(() => {
+      cell.classList.remove("blocked");
+    }, 300);
+
+    updateStats();
+  }
+}
+
+function updateStats() {
+  levelElement.textContent = level;
+  movesElement.textContent = moves;
+  scoreElement.textContent = score;
+
+  const total = arrows.length || 1;
+  const cleared = arrows.filter(arrow => arrow.gone).length;
+
+  progressElement.style.width =
+    `${Math.round((cleared / total) * 100)}%`;
+}
+
+function finishLevel() {
+  levelComplete = true;
+
+  score += Math.max(0, 50 - moves);
+
+  if (score > bestScore) {
+    bestScore = score;
+    saveBestScore();
+  }
+
+  updateStats();
+  playVictorySound();
+
+  document.getElementById("dialogIcon").textContent = "🏆";
+  document.getElementById("dialogTitle").textContent = "Level Complete!";
+  document.getElementById("dialogText").textContent =
+    `You cleared every arrow in ${moves} moves! Bonus points awarded.`;
+
+  document.getElementById("dialogBtn").textContent = "Next Level ➜";
+  overlayElement.classList.add("show");
+}
+
+function nextLevel() {
+  prepareAudio();
+
+  if (!levelComplete) {
+    messageElement.textContent =
+      "Clear all arrows before moving to the next level.";
+    return;
+  }
+
+  level++;
+  moves = 0;
+  overlayElement.classList.remove("show");
+
+  playClickSound();
+  generatePuzzle();
+}
+
+function restartLevel() {
+  prepareAudio();
+
+  if (!restartSnapshot) return;
+
+  arrows = restartSnapshot.map(arrow => ({
+    ...arrow,
+    gone: false
+  }));
+
+  moves = 0;
+  levelComplete = false;
+  hintIndex = -1;
+
+  overlayElement.classList.remove("show");
+
+  renderBoard();
+  updateStats();
+
+  messageElement.textContent = "Level restarted. Try a new strategy!";
+  playRestartSound();
+}
+
+/* -----------------------------
+   HINT SYSTEM
+----------------------------- */
+
+function showHint() {
+  prepareAudio();
+
+  if (levelComplete) return;
+
+  const possible = arrows.find(arrow =>
+    !arrow.gone && isPathClear(arrow, arrows)
+  );
+
+  if (!possible) {
+    messageElement.textContent =
+      "No clear arrow found. Try another move.";
+
+    playBlockedSound();
+    return;
+  }
+
+  hintIndex = possible.id;
+
+  renderBoard();
+
+  messageElement.textContent =
+    "Try the highlighted arrow! 💡";
+
+  playHintSound();
+}
+
+/* -----------------------------
+   BUTTONS
+----------------------------- */
+
+document.getElementById("hintBtn").addEventListener("click", () => {
+  showHint();
+});
+
+document.getElementById("restartBtn").addEventListener("click", () => {
+  restartLevel();
+});
+
+document.getElementById("nextBtn").addEventListener("click", () => {
+  nextLevel();
+});
+
+document.getElementById("soundBtn").addEventListener("click", () => {
+  soundEnabled = !soundEnabled;
+
+  const button = document.getElementById("soundBtn");
+
+  button.textContent = soundEnabled ? "🔊 Sound ON" : "🔇 Sound OFF";
+  button.setAttribute("aria-pressed", String(soundEnabled));
+
+  if (soundEnabled) {
+    prepareAudio();
+    playClickSound();
+  }
+});
+
+document.getElementById("dialogBtn").addEventListener("click", () => {
+  nextLevel();
+});
+
+/* Unlock audio on the first user interaction where supported. */
+document.addEventListener("pointerdown", () => {
+  if (soundEnabled && !audioReady) {
+    prepareAudio();
+  }
+}, { once: true });
+
+/* -----------------------------
+   START GAME
+----------------------------- */
+
+generatePuzzle();
+</script>
+</body>
+</html>
